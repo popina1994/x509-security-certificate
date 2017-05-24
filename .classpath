@@ -2,10 +2,11 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/Security Project/lib/appframework-1.0.3.jar"/>
-	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/Security Project/lib/SSLConnection.jar"/>
-	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/Security Project/lib/swing-worker-1.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/Security Project/lib/X509_2017.jar"/>
-	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/Security Project/lib/bcprov-jdk15on-157.jar"/>
+	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/x509-security-certificate/lib/appframework-1.0.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/x509-security-certificate/lib/bcprov-jdk15on-157.jar"/>
+	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/x509-security-certificate/lib/SSLConnection.jar"/>
+	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/x509-security-certificate/lib/swing-worker-1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/x509-security-certificate/lib/X509_2017.jar"/>
+	<classpathentry kind="lib" path="C:/Users/popina/Dropbox/Fakultet/Zastita podataka/x509-security-certificate/lib/jdatepicker-1.3.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
