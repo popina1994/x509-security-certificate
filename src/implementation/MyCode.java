@@ -1,14 +1,19 @@
 package implementation;
 
 import java.io.File;
+import java.util.Date;
 import java.util.Enumeration;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import code.GuiException;
 import x509.v3.CodeV3;
 
 public class MyCode extends CodeV3 {
-
+	public static final String LOCAL_STORE_NAME = "localStore.txt";
+	private MyKeyStore myKeyStore = new MyKeyStore();
+	//private LinkedHashMap< String, > hashMapKeyPair;
+	
 	public MyCode(boolean[] algorithm_conf, boolean[] extensions_conf) throws GuiException {
 		super(algorithm_conf, extensions_conf);
 		// TODO Auto-generated constructor stub
@@ -69,8 +74,8 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public int loadKeypair(String arg0) {
-		// TODO Auto-generated method stub
+	public int loadKeypair(String alias) {
+		
 		return 0;
 	}
 
@@ -81,9 +86,8 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean removeKeypair(String arg0) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean removeKeypair(String alias) {
+		return myKeyStore.removeKeyPairCertificate(alias);
 	}
 
 	@Override
@@ -93,9 +97,36 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean saveKeypair(String arg0) {
-
-		return false;
+	public boolean saveKeypair(String alias) {
+		String country = access.getSubjectCountry();
+		String state = access.getSubjectState();
+		String locality = access.getSubjectLocality();
+		String organization = access.getSubjectLocality();
+		String organizationUnit = access.getSubjectOrganizationUnit();
+		String commonName = access.getSubjectCommonName();
+		String signatureAlgorithm = access.getPublicKeySignatureAlgorithm();
+		CertificateSubject certificateSubject = new CertificateSubject(country, state, locality, 
+				organization, organizationUnit, commonName, signatureAlgorithm);
+		
+		int version = access.getVersion();
+		
+		String serialNumber = access.getSerialNumber();
+		
+		Date notBefore = access.getNotBefore();
+		Date notAfter = access.getNotAfter();
+		CertificateValidity certificateValidity = new CertificateValidity(notBefore, notAfter);
+		
+		String publicKeyLength = access.getPublicKeyParameter();
+		String publicKeyAlgorithm  = access.getPublicKeyAlgorithm();
+		int intPublicKeyLength = Integer.parseInt(publicKeyLength);
+		
+		CertificatePublicKey certificatePublicKey = new CertificatePublicKey(publicKeyAlgorithm, intPublicKeyLength);
+		Certificatex509v3Extension certificateV3Extension = null;
+		
+		Certificatex509v3 certificatex509v3 = new Certificatex509v3(version, certificateSubject, 
+											serialNumber, certificateValidity, 
+											certificatePublicKey, certificateV3Extension);
+		return myKeyStore.generateKeyPairCertificate(alias, certificatex509v3);
 	}
 
 	@Override
