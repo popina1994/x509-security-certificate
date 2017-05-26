@@ -15,6 +15,7 @@ import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Enumeration;
 
 import javax.swing.text.AbstractDocument.Content;
 
@@ -52,7 +53,7 @@ public class MyKeyStore {
 	{
 		if (keyStore == null)
 		{
-			if (!loadLocalKeyStore())
+			if (!loadKeyStore())
 			{
 				return null;
 			}
@@ -60,7 +61,7 @@ public class MyKeyStore {
 		return keyStore;
 	}
 	
-	public boolean loadLocalKeyStore()
+	public boolean loadKeyStore()
 	{
 		FileInputStream fileInputStream  = null;
 		try 
@@ -112,7 +113,7 @@ public class MyKeyStore {
 		return true;
 	}
 	
-	private void saveKeyStore()
+	private boolean saveKeyStore()
 	{
 		FileOutputStream fileOutputStream = null;
 		try {
@@ -121,18 +122,23 @@ public class MyKeyStore {
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		} catch (KeyStoreException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		} catch (CertificateException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		}
 		finally {
 			if (fileOutputStream != null)
@@ -142,10 +148,23 @@ public class MyKeyStore {
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+					return false;
 				}
 			}
 		}
+		return true;
+	}
+	
+	private void deleteKeyStore()
+	{
+		FileOutputStream fileOutputStream = null;
 		
+		if (checkIfExist(KEY_STORE_NAME))
+		{
+			File file = new File(KEY_STORE_NAME);
+			file.delete();
+			keyStore = null;
+		}
 	}
 	
 	private static KeyPair generateKeyPair(CertificatePublicKey certificatePublicKey)
@@ -224,7 +243,10 @@ public class MyKeyStore {
 				return false;
 			}
 			getKeyStore().setKeyEntry(alias, keyPair.getPrivate(), ARR_PASSWORD, chainCertficate);
-			saveKeyStore();
+			if (!saveKeyStore())
+			{
+				return false;
+			}
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
 			return false;
@@ -241,11 +263,36 @@ public class MyKeyStore {
 		}
 		try {
 			getKeyStore().deleteEntry(alias);
-			saveKeyStore();
+			if (!saveKeyStore())
+			{
+				return false;
+			}
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
 			return false;
 		}
 		return true;
+	}
+	
+	public Enumeration<String> loadLocalKeyStore()
+	{
+		if (!loadKeyStore())
+		{
+			return null;
+		}
+		try 
+		{
+			return getKeyStore().aliases();
+		}
+		catch (KeyStoreException exception)
+		{
+			exception.printStackTrace();
+			return null;
+		}
+	}
+	
+	public void resetLocalKeyStore()
+	{
+		deleteKeyStore();
 	}
 }

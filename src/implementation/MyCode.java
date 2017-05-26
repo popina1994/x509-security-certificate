@@ -10,9 +10,7 @@ import code.GuiException;
 import x509.v3.CodeV3;
 
 public class MyCode extends CodeV3 {
-	public static final String LOCAL_STORE_NAME = "localStore.txt";
-	private MyKeyStore myKeyStore = new MyKeyStore();
-	//private LinkedHashMap< String, > hashMapKeyPair;
+	private static MyKeyStore myKeyStore = new MyKeyStore();
 	
 	public MyCode(boolean[] algorithm_conf, boolean[] extensions_conf) throws GuiException {
 		super(algorithm_conf, extensions_conf);
@@ -81,8 +79,7 @@ public class MyCode extends CodeV3 {
 
 	@Override
 	public Enumeration<String> loadLocalKeystore() {
-		// TODO Auto-generated method stub
-		return null;
+		return myKeyStore.loadLocalKeyStore();
 	}
 
 	@Override
@@ -92,8 +89,7 @@ public class MyCode extends CodeV3 {
 
 	@Override
 	public void resetLocalKeystore() {
-		// TODO Auto-generated method stub
-
+		myKeyStore.resetLocalKeyStore();
 	}
 
 	@Override
