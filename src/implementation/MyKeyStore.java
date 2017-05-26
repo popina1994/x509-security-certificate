@@ -185,23 +185,23 @@ public class MyKeyStore {
 		
 	}
 	
-	private static X509Certificate generateCertificate(KeyPair keyPair, Certificatex509v3 certificatex509v3)
+	private static X509Certificate generateCertificate(KeyPair keyPair, Certificatev3 certificatev3)
 	{
 		// builder for extension 
 		X500NameBuilder x500NameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-		x500NameBuilder.addRDN(BCStyle.CN, certificatex509v3.getCertificateSubject().getCommonName());
-		x500NameBuilder.addRDN(BCStyle.ST, certificatex509v3.getCertificateSubject().getState());
-		x500NameBuilder.addRDN(BCStyle.L, certificatex509v3.getCertificateSubject().getLocality());
-		x500NameBuilder.addRDN(BCStyle.O,certificatex509v3.getCertificateSubject().getOrganization());
-		x500NameBuilder.addRDN(BCStyle.OU, certificatex509v3.getCertificateSubject().getOrganizationUnit());
-		x500NameBuilder.addRDN(BCStyle.CN, certificatex509v3.getCertificateSubject().getCommonName());
+		x500NameBuilder.addRDN(BCStyle.CN, certificatev3.getCertificateSubject().getCommonName());
+		x500NameBuilder.addRDN(BCStyle.ST, certificatev3.getCertificateSubject().getState());
+		x500NameBuilder.addRDN(BCStyle.L, certificatev3.getCertificateSubject().getLocality());
+		x500NameBuilder.addRDN(BCStyle.O,certificatev3.getCertificateSubject().getOrganization());
+		x500NameBuilder.addRDN(BCStyle.OU, certificatev3.getCertificateSubject().getOrganizationUnit());
+		x500NameBuilder.addRDN(BCStyle.CN, certificatev3.getCertificateSubject().getCommonName());
 		
 		X500Name x500Name = x500NameBuilder.build();
 		X509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(
 				x500Name, /* issuer */
-				new BigInteger(certificatex509v3.getSerialNumber()), /* serial number */
-				certificatex509v3.getCertificateValidity().getNotBefore(), /* not before */
-				certificatex509v3.getCertificateValidity().getNotAfter(), /* not after */
+				new BigInteger(certificatev3.getSerialNumber()), /* serial number */
+				certificatev3.getCertificateValidity().getNotBefore(), /* not before */
+				certificatev3.getCertificateValidity().getNotAfter(), /* not after */
 				x500Name, /* subject */
 				keyPair.getPublic() /* public key*/
 				);
@@ -209,7 +209,7 @@ public class MyKeyStore {
 		//certificateBuilder.addExtension(Extension.keyI)
 		ContentSigner contentSigner = null;
 		try {
-			contentSigner = new JcaContentSignerBuilder(certificatex509v3.getCertificateSubject().getSignatureAlgorithm()).
+			contentSigner = new JcaContentSignerBuilder(certificatev3.getCertificateSubject().getSignatureAlgorithm()).
 											build(keyPair.getPrivate());
 		} catch (OperatorCreationException e) {
 			// TODO Auto-generated catch block
@@ -230,10 +230,10 @@ public class MyKeyStore {
 		
 	}
 
-	public boolean generateKeyPairCertificate(String alias, Certificatex509v3 certificatex509v3) {
+	public boolean generateKeyPairCertificate(String alias, Certificatev3 certificatev3) {
 		//KeyStore
-		KeyPair keyPair = generateKeyPair(certificatex509v3.getCertificatePublicKey());
-		X509Certificate  certificate = generateCertificate(keyPair, certificatex509v3);
+		KeyPair keyPair = generateKeyPair(certificatev3.getCertificatePublicKey());
+		X509Certificate  certificate = generateCertificate(keyPair, certificatev3);
 		Certificate [] chainCertficate = new Certificate[1];
 		chainCertficate[0] = certificate;
 		
@@ -294,5 +294,16 @@ public class MyKeyStore {
 	public void resetLocalKeyStore()
 	{
 		deleteKeyStore();
+	}
+	
+	public Certificatev3 loadKeyPair(String alias)
+	{
+		if (getKeyStore() == null)
+		{
+			return null;
+		}
+		//return getKeyStore().getCertificate(alias);
+		//new Jca
+		return null;
 	}
 }

@@ -1,15 +1,15 @@
 package implementation;
 
-public class Certificatex509v3 {
+public class Certificatev3 {
 	private int version;
 	private CertificateSubject certificateSubject;
 	private String serialNumber;
 	private CertificateValidity certificateValidity;
 	private CertificatePublicKey certificatePublicKey;
-	private Certificatex509v3Extension certificateV3Extension;
-	public Certificatex509v3(int version, CertificateSubject certificateSubject, String serialNumber,
+	private Certificatev3Extension certificateV3Extension;
+	public Certificatev3(int version, CertificateSubject certificateSubject, String serialNumber,
 			CertificateValidity certificateValidity, CertificatePublicKey certificatePublicKey,
-			Certificatex509v3Extension certificateV3Extension) {
+			Certificatev3Extension certificateV3Extension) {
 		super();
 		this.version = version;
 		this.certificateSubject = certificateSubject;
@@ -33,7 +33,7 @@ public class Certificatex509v3 {
 	public CertificatePublicKey getCertificatePublicKey() {
 		return certificatePublicKey;
 	}
-	public Certificatex509v3Extension getCertificateV3Extension() {
+	public Certificatev3Extension getCertificateV3Extension() {
 		return certificateV3Extension;
 	}
 	
