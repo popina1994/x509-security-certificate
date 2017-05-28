@@ -13,20 +13,28 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Date;
 import java.util.Enumeration;
 
 import javax.swing.text.AbstractDocument.Content;
 
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509v1CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
@@ -205,6 +213,7 @@ public class MyKeyStore {
 				x500Name, /* subject */
 				keyPair.getPublic() /* public key*/
 				);
+		
 		//certificateBuilder.addExtension(Extension.basicConstraints, new BasicConstraints(arg0));
 		//certificateBuilder.addExtension(Extension.keyI)
 		ContentSigner contentSigner = null;
@@ -296,14 +305,80 @@ public class MyKeyStore {
 		deleteKeyStore();
 	}
 	
+	private static String getFromRDNString(RDN rdn)
+	{
+		return IETFUtils.valueToString(rdn.getFirst().getValue());
+	}
+	
+	private static String getStringWithStyle(X500Name x500Name, ASN1ObjectIdentifier style)
+	{
+		RDN rdn = x500Name.getRDNs(style)[0];
+		return getFromRDNString(rdn);
+	}
+	
 	public Certificatev3 loadKeyPair(String alias)
 	{
+		String country = null;
+		String state = null;
+		String locality = null;
+		String organization = null;
+		String organizationUnit = null;
+		String commonName = null;
+		String signatureAlgorithm = null;
+		
+		Integer publicKeyLength = null;
+		String publicKeyAlgorithm = null;
+		
+		Integer version = null;
+		String serialNumber = null;
+		Date notBefore = null;
+		Date notAfter = null;
+		RDN rdn =  null;
 		if (getKeyStore() == null)
 		{
 			return null;
 		}
-		//return getKeyStore().getCertificate(alias);
-		//new Jca
-		return null;
+		Certificatev3 certificateV3 = null;
+		try {
+			X509Certificate certificate = null;
+			certificate =  (X509Certificate)getKeyStore().getCertificate(alias);
+			X500Name x500name = new JcaX509CertificateHolder(certificate).getSubject();
+			
+			country = getStringWithStyle(x500name, BCStyle.CN);
+			state = getStringWithStyle(x500name, BCStyle.ST);
+			locality = getStringWithStyle(x500name, BCStyle.L);
+			organization = getStringWithStyle(x500name, BCStyle.O);
+			organizationUnit = getStringWithStyle(x500name, BCStyle.OU);
+			commonName = getStringWithStyle(x500name, BCStyle.CN);
+			signatureAlgorithm = certificate.getSigAlgName();
+			CertificateSubject certificateSubject = new CertificateSubject(country, state, locality, organization, 
+					organizationUnit, commonName, signatureAlgorithm);
+			
+			version = certificate.getVersion();
+			serialNumber = ""+certificate.getSerialNumber();
+			
+			notBefore = certificate.getNotBefore();
+			notAfter = certificate.getNotAfter();
+			CertificateValidity certificateValidity = new CertificateValidity(notBefore, notAfter);
+			
+			publicKeyAlgorithm = certificate.getPublicKey().getAlgorithm();
+			RSAPublicKey rsaPublicKey = (RSAPublicKey)certificate.getPublicKey();
+			publicKeyLength = rsaPublicKey.getModulus().bitLength();
+			CertificatePublicKey certificatePublicKey = new CertificatePublicKey(publicKeyAlgorithm, 
+					publicKeyLength);
+			
+			Certificatev3Extension certificatev3Extension = null;
+			certificateV3 = new Certificatev3(version, certificateSubject, 
+					serialNumber, certificateValidity, certificatePublicKey, certificatev3Extension);
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+			return null;
+		} catch (CertificateEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		
+		return certificateV3;
 	}
 }
