@@ -59,9 +59,13 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public int getRSAKeyLength(String arg0) {
-		// TODO Auto-generated method stub
-		return 0;
+	public int getRSAKeyLength(String alias) {
+		Certificatev3 certificatev3 = myKeyStore.loadKeyPair(alias);
+		if (certificatev3 == null)
+		{
+			return 0;
+		}
+		return certificatev3.getCertificatePublicKey().getPublicKeyLength();
 	}
 
 	@Override
@@ -76,10 +80,53 @@ public class MyCode extends CodeV3 {
 		return false;
 	}
 
+	private static final int ERROR_CODE_LOAD_KEY_PAIR = -1;
+	private static final int NOT_SIGNED_CODE_LOAD_KEY_PAIR = 0;
+	private static final int SIGNED_CODE_LOAD_KEY_PAIR = 1;
+	private static final int TRUSTED_CODE_LOAD_KEY_PAIR = 2;
+	
 	@Override
 	public int loadKeypair(String alias) {
-		//access.setVersion(i);
-		return 0;
+		Certificatev3 certificate = myKeyStore.loadKeyPair(alias);
+		if (certificate == null)
+		{
+			return ERROR_CODE_LOAD_KEY_PAIR;
+		}
+		access.setSubjectCountry(certificate.getCertificateSubject().getCountry());
+		access.setSubjectState(certificate.getCertificateSubject().getState());
+		access.setSubjectLocality(certificate.getCertificateSubject().getLocality());
+		access.setSubjectOrganization(certificate.getCertificateSubject().getOrganization());
+		access.setSubjectOrganizationUnit(certificate.getCertificateSubject().getOrganizationUnit());
+		access.setSubjectCommonName(certificate.getCertificateSubject().getCommonName());
+		access.setSubjectSignatureAlgorithm(certificate.getCertificateSubject().getSignatureAlgorithm());
+		access.setPublicKeySignatureAlgorithm(certificate.getCertificateSubject().getSignatureAlgorithm());
+		
+		
+		access.setVersion(certificate.getVersion());
+		access.setSerialNumber(certificate.getSerialNumber());
+		
+		access.setNotAfter(certificate.getCertificateValidity().getNotAfter());
+		access.setNotBefore(certificate.getCertificateValidity().getNotBefore());
+		
+		access.setPublicKeyAlgorithm(certificate.getCertificatePublicKey().getPublicKeyAlgorithm());
+		access.setPublicKeyParameter(Integer.toString(certificate.getCertificatePublicKey().getPublicKeyLength()));
+		
+		access.setCritical(Constants.BC, certificate.getCertificateV3Extension().getExtBasicConstraint().isCritical());
+		access.setCA(certificate.getCertificateV3Extension().getExtBasicConstraint().isCertificateAuthority());
+		access.setPathLen(certificate.getCertificateV3Extension().getExtBasicConstraint().getPathLength());;
+		
+		access.setCritical(Constants.IAN, certificate.getCertificateV3Extension().getExtIssuerAlternativeNames().isCritical());
+		String[] alternativeNames = certificate.getCertificateV3Extension().getExtIssuerAlternativeNames().getIssuerAlternativeNames();
+		
+		if (alternativeNames.length > 0)
+		{
+			access.setAlternativeName(Constants.IAN, alternativeNames[0]);
+		}
+		
+
+		
+		
+		return NOT_SIGNED_CODE_LOAD_KEY_PAIR;
 	}
 
 	@Override
@@ -110,7 +157,6 @@ public class MyCode extends CodeV3 {
 				organization, organizationUnit, commonName, signatureAlgorithm);
 		
 		int version = access.getVersion();
-		
 		String serialNumber = access.getSerialNumber();
 		
 		Date notBefore = access.getNotBefore();
