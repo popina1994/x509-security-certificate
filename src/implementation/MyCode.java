@@ -8,6 +8,8 @@ import java.util.List;
 
 import javax.swing.SpringLayout.Constraints;
 
+import org.bouncycastle.operator.ContentSigner;
+
 import code.GuiException;
 import gui.Constants;
 import x509.v3.CodeV3;
@@ -117,12 +119,15 @@ public class MyCode extends CodeV3 {
 		
 		access.setCritical(Constants.IAN, certificate.getCertificateV3Extension().getExtIssuerAlternativeNames().isCritical());
 		String[] alternativeNames = certificate.getCertificateV3Extension().getExtIssuerAlternativeNames().getIssuerAlternativeNames();
-		
 		if (alternativeNames.length > 0)
 		{
 			access.setAlternativeName(Constants.IAN, alternativeNames[0]);
 		}
 		
+		
+		access.setCritical(Constants.AKID, certificate.getCertificateV3Extension().getExtKeyIdentifiers().isCritical());
+		access.setEnabledKeyIdentifiers(certificate.getCertificateV3Extension().getExtKeyIdentifiers().isKeyIdentifierEnabled());
+		access.setSubjectKeyID(certificate.getCertificateV3Extension().getExtKeyIdentifiers().getSubjectKeyIdentifier());;
 
 		
 		

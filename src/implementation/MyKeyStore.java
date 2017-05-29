@@ -30,6 +30,8 @@ import java.util.Set;
 import javax.swing.text.AbstractDocument.Content;
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
@@ -43,9 +45,11 @@ import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.X509Extensions;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509ExtensionUtils;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v1CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
@@ -251,7 +255,8 @@ public class MyKeyStore {
 		{
 			basicConstraints = new BasicConstraints(false);
 		}
-		try {
+		try 
+		{
 			certificateBuilder.addExtension(Extension.basicConstraints, 
 											certificatev3.getCertificateV3Extension().getExtBasicConstraint().isCritical(),
 											basicConstraints);
@@ -259,6 +264,26 @@ public class MyKeyStore {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			return null;
+		}
+		
+		// KEY IDENTIFIERS
+		if (certificatev3.getCertificateV3Extension().getExtKeyIdentifiers().isKeyIdentifierEnabled())
+		{
+			try {
+				JcaX509ExtensionUtils extensionUtils = new JcaX509ExtensionUtils();
+				certificateBuilder.addExtension(Extension.subjectKeyIdentifier, 
+												certificatev3.getCertificateV3Extension().getExtKeyIdentifiers().isCritical(),
+												extensionUtils.createSubjectKeyIdentifier(keyPair.getPublic()));
+			} catch (CertIOException e2) {
+				// TODO Auto-generated catch block
+				e2.printStackTrace();
+				return null;
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return null;
+			}
+			
 		}
 		
 		// ALTERNATIVE NAMES
@@ -382,6 +407,41 @@ public class MyKeyStore {
 		return getFromRDNString(rdn);
 	}
 	
+	private static String byteArrayToHex(byte[] byteArr) 
+	{  
+		char[] hexArrDigit = "0123456789ABCDEF".toCharArray(); 
+		char[] hexCharArray = new char[byteArr.length * 2];
+		int idx;
+		int byteVal;
+		for (idx = 0; idx < byteArr.length; idx++) 
+		{ 
+			byteVal = 0xFF & byteArr[idx]; 
+			hexCharArray[idx * 2] = hexArrDigit[byteVal >>> 4]; 
+			hexCharArray[idx * 2 + 1] = hexArrDigit[byteVal & 0x0F]; 
+		  } 
+		return new String(hexCharArray); 
+	}
+	
+	private static String getSubjectKeyIdentifier(X509Certificate certificate) {
+		// https://stackoverflow.com/questions/6523081/why-doesnt-my-key-identifier-match
+		byte[] extension = certificate.getExtensionValue(Extension.subjectKeyIdentifier.getId());
+		byte[] subjectKeyIdentifier = {};
+		ASN1Primitive primitive;
+		if (extension == null) {
+			return null;
+		}
+
+		try {
+			primitive = JcaX509ExtensionUtils.parseExtensionValue(extension);
+			subjectKeyIdentifier = ASN1OctetString.getInstance(primitive.getEncoded()).getOctets();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			return null;
+		}
+		return byteArrayToHex(subjectKeyIdentifier).replaceAll("..(?!$)", "$0:");
+	}
+	
+	
 	public Certificatev3 loadKeyPair(String alias)
 	{
 		String country = null;
@@ -459,6 +519,21 @@ public class MyKeyStore {
 			boolean isCriticalBasicConstraint = setCriticalOID.contains(X509Extensions.BasicConstraints.getId());
 			Certificatev3ExtensionBasicConstraint basicConstraint = new Certificatev3ExtensionBasicConstraint(isCriticalBasicConstraint, pathLengthStr, isCertificateAuthority);
 			
+			// KEY IDENTIFIER
+			boolean isCriticalKeyIdentifier = setCriticalOID.contains(X509Extensions.SubjectKeyIdentifier.getId());
+			boolean isKeyIdentifierEnabled = false;
+			String keySubjectIdentifier = null;
+			// TODO: update getSubject...
+			if (getSubjectKeyIdentifier(certificate) != null)
+			{
+				isKeyIdentifierEnabled = true;
+				keySubjectIdentifier = getSubjectKeyIdentifier(certificate);
+			}
+			
+			Certificatev3ExtensionKeyIdentifiers keyIdentifiers = new Certificatev3ExtensionKeyIdentifiers(
+																isCriticalKeyIdentifier, 
+																isKeyIdentifierEnabled, 
+																keySubjectIdentifier);
 			// ALTERNATIVE NAMES
 			
 			String issuerAlternativeNames[] = new String[0]; 
@@ -490,7 +565,7 @@ public class MyKeyStore {
 							isCriticalAlternativeNames, 
 							issuerAlternativeNames);
 			
-			Certificatev3Extension certificatev3Extension = new Certificatev3Extension(basicConstraint, alternativeNames, null);
+			Certificatev3Extension certificatev3Extension = new Certificatev3Extension(basicConstraint, alternativeNames, keyIdentifiers);
 			certificateV3 = new Certificatev3(version, certificateSubject, 
 					serialNumber, certificateValidity, certificatePublicKey, certificatev3Extension);
 		} catch (KeyStoreException e) {
