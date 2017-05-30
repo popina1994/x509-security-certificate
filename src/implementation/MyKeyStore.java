@@ -233,16 +233,24 @@ public class MyKeyStore {
 		return gAlternativeNames;
 	}
 	
+	private static void addRdnToNameBuilder(X500NameBuilder builder, ASN1ObjectIdentifier style, String name)
+	{
+		if (!"".equals(name))
+		{
+			builder.addRDN(style, name);
+		}
+	}
+	
 	private static X509Certificate generateCertificate(KeyPair keyPair, Certificatev3 certificatev3)
 	{
 		// builder for extension 
 		X500NameBuilder x500NameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-		x500NameBuilder.addRDN(BCStyle.CN, certificatev3.getCertificateSubject().getCommonName());
-		x500NameBuilder.addRDN(BCStyle.ST, certificatev3.getCertificateSubject().getState());
-		x500NameBuilder.addRDN(BCStyle.L, certificatev3.getCertificateSubject().getLocality());
-		x500NameBuilder.addRDN(BCStyle.O,certificatev3.getCertificateSubject().getOrganization());
-		x500NameBuilder.addRDN(BCStyle.OU, certificatev3.getCertificateSubject().getOrganizationUnit());
-		x500NameBuilder.addRDN(BCStyle.CN, certificatev3.getCertificateSubject().getCommonName());
+		addRdnToNameBuilder(x500NameBuilder, BCStyle.C, certificatev3.getCertificateSubject().getCountry());
+		addRdnToNameBuilder(x500NameBuilder, BCStyle.ST, certificatev3.getCertificateSubject().getState());
+		addRdnToNameBuilder(x500NameBuilder, BCStyle.L, certificatev3.getCertificateSubject().getLocality());
+		addRdnToNameBuilder(x500NameBuilder, BCStyle.O, certificatev3.getCertificateSubject().getOrganization());
+		addRdnToNameBuilder(x500NameBuilder, BCStyle.OU, certificatev3.getCertificateSubject().getOrganizationUnit());
+		addRdnToNameBuilder(x500NameBuilder, BCStyle.CN, certificatev3.getCertificateSubject().getCommonName());
 		
 		X500Name x500Name = x500NameBuilder.build();
 		X509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(
@@ -582,7 +590,7 @@ public class MyKeyStore {
 			X500Name x500name = new JcaX509CertificateHolder(certificate).getSubject();
 			
 			// SUBJECT DATA
-			country = getStringWithStyle(x500name, BCStyle.CN);
+			country = getStringWithStyle(x500name, BCStyle.C);
 			state = getStringWithStyle(x500name, BCStyle.ST);
 			locality = getStringWithStyle(x500name, BCStyle.L);
 			organization = getStringWithStyle(x500name, BCStyle.O);
@@ -829,5 +837,20 @@ public class MyKeyStore {
 			return null;
 		}
 		return listCertifiedAuthorities;
+	}
+
+	public String getIssuer(String issuerAlias) {
+		X509Certificate certificate;
+		try {
+			certificate = (X509Certificate) getKeyStore().getCertificate(issuerAlias);
+			X500Name x500SubjectName = new JcaX509CertificateHolder(certificate).getSubject();
+			String subjectNameStringRep = x500SubjectName.toString();
+			return subjectNameStringRep;
+		} catch (KeyStoreException | CertificateEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		
 	}
 }
