@@ -14,6 +14,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
@@ -26,6 +27,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -42,6 +44,7 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
@@ -58,7 +61,10 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v1CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.DefaultAlgorithmNameFinder;
+import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
@@ -76,6 +82,15 @@ public class MyKeyStore {
 	static final String KEY_STORE_DEFAULT_JAVA_NAME = "JKS";
 	static final String KEY_STORE_FORMAT_PKCS12 = "PKCS12";
 	
+	private static final HashMap<String, String> algSig = new HashMap<>();
+	
+	static 
+	{
+		algSig.put("1.3.36.3.3.1.3", "RIPEMD128withRSA");
+		algSig.put("1.3.36.3.3.1.2", "RIPEMD160withRSA");
+		algSig.put("1.3.36.3.3.1.4", "RIPEMD256withRSA");
+		Security.addProvider(new BouncyCastleProvider());
+	}
 	
 	private static boolean checkIfExist(String fileName)
 	{
@@ -279,7 +294,6 @@ public class MyKeyStore {
 											certificatev3.getCertificateV3Extension().getExtBasicConstraint().isCritical(),
 											basicConstraints);
 		} catch (CertIOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			return null;
 		}
@@ -293,11 +307,9 @@ public class MyKeyStore {
 												certificatev3.getCertificateV3Extension().getExtKeyIdentifiers().isCritical(),
 												extensionUtils.createSubjectKeyIdentifier(keyPair.getPublic()));
 			} catch (CertIOException e2) {
-				// TODO Auto-generated catch block
 				e2.printStackTrace();
 				return null;
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 				return null;
 			}
@@ -314,7 +326,6 @@ public class MyKeyStore {
 												certificatev3.getCertificateV3Extension().getExtIssuerAlternativeNames().isCritical(), 
 												generalNames);
 			} catch (CertIOException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 				return null;
 			};
@@ -325,7 +336,6 @@ public class MyKeyStore {
 			contentSigner = new JcaContentSignerBuilder(certificatev3.getCertificateSubject().getSignatureAlgorithm()).
 											build(keyPair.getPrivate());
 		} catch (OperatorCreationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		};
@@ -335,7 +345,6 @@ public class MyKeyStore {
 		try {
 			certificate = new JcaX509CertificateConverter().getCertificate(certificateHolder);
 		} catch (CertificateException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}
@@ -561,6 +570,17 @@ public class MyKeyStore {
 		return keyIdentifiers;
 	}
 	
+	public static String getSignatureAlgorithm(X509Certificate certificate)
+	{
+		String signCode = certificate.getSigAlgName();
+		String algName = algSig.get(signCode); 
+		if (algName == null)
+		{
+			return signCode;
+		}
+		return algName;
+	}
+	
 	public Certificatev3 loadKeyPair(String alias)
 	{
 		String country = null;
@@ -596,7 +616,9 @@ public class MyKeyStore {
 			organization = getStringWithStyle(x500name, BCStyle.O);
 			organizationUnit = getStringWithStyle(x500name, BCStyle.OU);
 			commonName = getStringWithStyle(x500name, BCStyle.CN);
-			signatureAlgorithm = certificate.getSigAlgName();
+			signatureAlgorithm = getSignatureAlgorithm(certificate);
+
+			
 			CertificateSubject certificateSubject = new CertificateSubject(country, state, locality, organization, 
 					organizationUnit, commonName, signatureAlgorithm);
 			
@@ -808,7 +830,7 @@ public class MyKeyStore {
 			certificationRequestBuilder.addAttribute(
 					PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, 
 					extensions);
-			ContentSigner contentSigner = new JcaContentSignerBuilder(certificate.getSigAlgName()).build(privateKey);
+			ContentSigner contentSigner = new JcaContentSignerBuilder(getSignatureAlgorithm(certificate)).build(privateKey);
 			certificateSignRequest =  certificationRequestBuilder.build(contentSigner);
 			
 		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException | CertificateEncodingException | OperatorCreationException e) {
@@ -852,5 +874,23 @@ public class MyKeyStore {
 			return null;
 		}
 		
+	}
+
+	public String getIssuerPublicKeyAlgorithm(String issuerAlias) {
+		X509Certificate certificate;
+		try {
+			certificate = (X509Certificate) getKeyStore().getCertificate(issuerAlias);
+			String publicKeyAlgorithm = certificate.getPublicKey().getAlgorithm();
+			return publicKeyAlgorithm;
+		} catch (KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public boolean signCertificate(String issuerAlias, String algorithmSign) {
+		//certificateSignRequest.
+		return false;
 	}
 }

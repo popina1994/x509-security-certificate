@@ -42,15 +42,15 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public String getIssuer(String arg0) {
+	public String getIssuer(String issuerAlias) {
 		// TODO Auto-generated method stub
-		return null;
+		return myKeyStore.getIssuer(issuerAlias);
 	}
 
 	@Override
-	public String getIssuerPublicKeyAlgorithm(String arg0) {
+	public String getIssuerPublicKeyAlgorithm(String issuerAlias) {
 		// TODO Auto-generated method stub
-		return null;
+		return myKeyStore.getIssuerPublicKeyAlgorithm(issuerAlias);
 	}
 
 	@Override
@@ -129,8 +129,7 @@ public class MyCode extends CodeV3 {
 		
 		//access.setIssuer(v);
 		access.setIssuer("Test");
-		//access.setIssuer
-		//access.setCou
+		//access.issu
 		
 		
 		return NOT_SIGNED_CODE_LOAD_KEY_PAIR;
@@ -156,7 +155,7 @@ public class MyCode extends CodeV3 {
 		String country = access.getSubjectCountry();
 		String state = access.getSubjectState();
 		String locality = access.getSubjectLocality();
-		String organization = access.getSubjectLocality();
+		String organization = access.getSubjectOrganization();
 		String organizationUnit = access.getSubjectOrganizationUnit();
 		String commonName = access.getSubjectCommonName();
 		String signatureAlgorithm = access.getPublicKeySignatureAlgorithm();
@@ -201,9 +200,8 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean signCertificate(String arg0, String arg1) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean signCertificate(String issuerAlias, String algorithmSign) {
+		return myKeyStore.signCertificate(issuerAlias, algorithmSign);
 	}
 
 }

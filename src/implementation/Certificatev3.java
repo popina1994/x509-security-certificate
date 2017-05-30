@@ -4,6 +4,7 @@ public class Certificatev3 {
 	private int version;
 	private CertificateSubject certificateSubject;
 	private String serialNumber;
+	private String issuer;
 	private CertificateValidity certificateValidity;
 	private CertificatePublicKey certificatePublicKey;
 	private Certificatev3Extension certificateV3Extension;
