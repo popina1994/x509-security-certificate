@@ -37,9 +37,8 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean generateCSR(String arg0) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean generateCSR(String keypairName) {
+		return myKeyStore.generateCSR(keypairName);
 	}
 
 	@Override
@@ -55,9 +54,8 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public List<String> getIssuers(String arg0) {
-		// TODO Auto-generated method stub
-		return null;
+	public List<String> getIssuers(String keypairName) {
+		return myKeyStore.getIssuers(keypairName);
 	}
 
 	@Override
@@ -128,7 +126,11 @@ public class MyCode extends CodeV3 {
 		access.setCritical(Constants.AKID, certificate.getCertificateV3Extension().getExtKeyIdentifiers().isCritical());
 		access.setEnabledKeyIdentifiers(certificate.getCertificateV3Extension().getExtKeyIdentifiers().isKeyIdentifierEnabled());
 		access.setSubjectKeyID(certificate.getCertificateV3Extension().getExtKeyIdentifiers().getSubjectKeyIdentifier());;
-
+		
+		//access.setIssuer(v);
+		access.setIssuer("Test");
+		//access.setIssuer
+		//access.setCou
 		
 		
 		return NOT_SIGNED_CODE_LOAD_KEY_PAIR;
