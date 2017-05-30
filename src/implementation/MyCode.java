@@ -31,9 +31,9 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean exportKeypair(String arg0, String arg1, String arg2) {
-		// TODO Auto-generated method stub	
-		return false;
+	public boolean exportKeypair(String alias, String file, String password) {
+		
+		return myKeyStore.exportKeypair(alias, file, password);
 	}
 
 	@Override
@@ -77,9 +77,9 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean importKeypair(String arg0, String arg1, String arg2) {
+	public boolean importKeypair(String alias, String file, String password) {
 		// TODO Auto-generated method stub
-		return false;
+		return myKeyStore.importKeyPair(alias, file, password);
 	}
 
 	private static final int ERROR_CODE_LOAD_KEY_PAIR = -1;

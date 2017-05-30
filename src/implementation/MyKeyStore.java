@@ -7,18 +7,21 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.security.cert.X509Extension;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collection;
 import java.util.Date;
@@ -65,6 +68,7 @@ public class MyKeyStore {
 	static final char [] ARR_PASSWORD = "Baba1234!".toCharArray();
 	static final String KEY_STORE_NAME = "KeyStore.jks";
 	static final String KEY_STORE_DEFAULT_JAVA_NAME = "JKS";
+	static final String KEY_STORE_FORMAT_PKCS12 = "PKCS12";
 	
 	
 	private static boolean checkIfExist(String fileName)
@@ -103,7 +107,7 @@ public class MyKeyStore {
 		} 
 		catch (FileNotFoundException e)
 		{
-			
+			return false;
 		}
 		catch (CertificateException e) {
 			// TODO Auto-generated catch block
@@ -403,7 +407,14 @@ public class MyKeyStore {
 	
 	private static String getStringWithStyle(X500Name x500Name, ASN1ObjectIdentifier style)
 	{
-		RDN rdn = x500Name.getRDNs(style)[0];
+		RDN [] rdnArr = x500Name.getRDNs(style);
+		RDN rdn = null;
+		if ( (rdnArr == null) || (rdnArr.length == 0))
+		{
+			return "";
+		}
+
+		rdn = rdnArr[0];
 		return getFromRDNString(rdn);
 	}
 	
@@ -428,7 +439,7 @@ public class MyKeyStore {
 		byte[] subjectKeyIdentifier = {};
 		ASN1Primitive primitive;
 		if (extension == null) {
-			return null;
+			return "";
 		}
 
 		try {
@@ -523,11 +534,16 @@ public class MyKeyStore {
 			boolean isCriticalKeyIdentifier = setCriticalOID.contains(X509Extensions.SubjectKeyIdentifier.getId());
 			boolean isKeyIdentifierEnabled = false;
 			String keySubjectIdentifier = null;
+			
 			// TODO: update getSubject...
-			if (getSubjectKeyIdentifier(certificate) != null)
+			keySubjectIdentifier = getSubjectKeyIdentifier(certificate);
+			if (!"".equals(keySubjectIdentifier))
 			{
 				isKeyIdentifierEnabled = true;
-				keySubjectIdentifier = getSubjectKeyIdentifier(certificate);
+			}
+			else 
+			{
+				isKeyIdentifierEnabled = false;
 			}
 			
 			Certificatev3ExtensionKeyIdentifiers keyIdentifiers = new Certificatev3ExtensionKeyIdentifiers(
@@ -578,5 +594,96 @@ public class MyKeyStore {
 		}
 		
 		return certificateV3;
+	}
+
+	public boolean exportKeypair(String alias, String file, String password) 
+	{
+		FileOutputStream fileOutputStream = null;
+		
+		try {
+			
+			X509Certificate certificate = (X509Certificate)getKeyStore().getCertificate(alias);
+			Key key = getKeyStore().getKey(alias, ARR_PASSWORD);
+			fileOutputStream = new FileOutputStream(file);
+			KeyStore keyStore = KeyStore.getInstance(KEY_STORE_FORMAT_PKCS12);
+			keyStore.load(null, null);
+			Certificate [] chainCertficate = new Certificate[1];
+			chainCertficate[0] = certificate;
+			
+			keyStore.setKeyEntry(alias, key, password.toCharArray(), chainCertficate);
+			keyStore.store(fileOutputStream, password.toCharArray());
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return false;
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+			return false;
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return false;
+		} catch (CertificateException e) {
+			e.printStackTrace();
+			return false;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		} catch (UnrecoverableKeyException e) {
+			e.printStackTrace();
+			return false;
+		}
+		finally {
+			if (fileOutputStream != null)
+			{
+				try 
+				{
+					fileOutputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	public 	boolean importKeyPair(String alias, String file, String password)
+	{
+		FileInputStream fileInputStream = null;
+		KeyStore keyStore = null;
+		
+		try 
+		{
+			keyStore = KeyStore.getInstance(KEY_STORE_FORMAT_PKCS12);
+			fileInputStream = new FileInputStream(file);
+			keyStore.load(fileInputStream, password.toCharArray());
+			Certificate certificate = keyStore.getCertificate(alias);
+			Certificate [] chainCertficate = new Certificate[1];
+			Key key = keyStore.getKey(alias, password.toCharArray());
+			chainCertficate[0] = certificate;
+			getKeyStore().setKeyEntry(alias, key, ARR_PASSWORD, chainCertficate);
+			saveKeyStore();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return false;
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return false;
+		} catch (CertificateException e) {
+			e.printStackTrace();
+			return false;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+			return false;
+		} catch (UnrecoverableKeyException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		
+		return true;
 	}
 }
