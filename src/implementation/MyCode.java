@@ -127,8 +127,9 @@ public class MyCode extends CodeV3 {
 		access.setEnabledKeyIdentifiers(certificate.getCertificateV3Extension().getExtKeyIdentifiers().isKeyIdentifierEnabled());
 		access.setSubjectKeyID(certificate.getCertificateV3Extension().getExtKeyIdentifiers().getSubjectKeyIdentifier());;
 		
-		//access.setIssuer(v);
-		access.setIssuer("Test");
+		access.setIssuer(certificate.getCertificateIssuer().getIssuer());
+		
+		//access.setissu
 		//access.issu
 		
 		

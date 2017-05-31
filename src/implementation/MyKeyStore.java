@@ -41,6 +41,7 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DERSet;
+import org.bouncycastle.asn1.cms.IssuerAndSerialNumber;
 import org.bouncycastle.asn1.pkcs.Attribute;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.RDN;
@@ -587,6 +588,22 @@ public class MyKeyStore {
 		return algName;
 	}
 	
+	private CertificateIssuer getIssuerFromCert(X509Certificate certificate) {
+		X500Name issuerX500Name = null;
+		try {
+			issuerX500Name = new JcaX509CertificateHolder(certificate).getIssuer();
+		} catch (CertificateEncodingException e) {
+			e.printStackTrace();
+			return null;
+		}
+		CertificateIssuer issuer = new CertificateIssuer(
+				issuerX500Name.toString(), 
+				"");
+		return issuer;
+			
+	}
+
+	
 	public Certificatev3 loadKeyPair(String alias)
 	{
 		String country = null;
@@ -644,13 +661,16 @@ public class MyKeyStore {
 					publicKeyLength);
 			
 			// ISSUED BY
+			
+			CertificateIssuer issuer = getIssuerFromCert(certificate);
+			
 			Certificatev3ExtensionBasicConstraint basicConstraint = getExtBasicConstraintFromCert(certificate);
 			Certificatev3ExtensionKeyIdentifiers keyIdentifiers = getExtKeyIdentifiersFromCert(certificate);
 			Certificatev3ExtensionIssuerAlternativeName alternativeNames =  getExtAltNamesFromCert(certificate);
 			
 			Certificatev3Extension certificatev3Extension = new Certificatev3Extension(basicConstraint, alternativeNames, keyIdentifiers);
 			certificateV3 = new Certificatev3(version, certificateSubject, 
-					serialNumber, certificateValidity, certificatePublicKey, certificatev3Extension);
+					serialNumber, issuer, certificateValidity, certificatePublicKey, certificatev3Extension);
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
 			return null;
@@ -662,6 +682,7 @@ public class MyKeyStore {
 		
 		return certificateV3;
 	}
+
 
 	public boolean exportKeypair(String alias, String file, String password) 
 	{
@@ -732,22 +753,10 @@ public class MyKeyStore {
 			getKeyStore().setKeyEntry(alias, key, ARR_PASSWORD, chainCertficate);
 			saveKeyStore();
 			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			return false;
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-			return false;
-		} catch (CertificateException e) {
-			e.printStackTrace();
-			return false;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-			return false;
-		} catch (UnrecoverableKeyException e) {
+		}
+		catch (KeyStoreException | NoSuchAlgorithmException | 
+				CertificateException | IOException | UnrecoverableKeyException e)
+		{
 			e.printStackTrace();
 			return false;
 		}
@@ -844,15 +853,40 @@ public class MyKeyStore {
 		set = (DERSet) attribute.getAttrValues();
 		enumList = set.getObjects();
 		
-		while (enumList.hasMoreElements())
+		if (enumList.hasMoreElements())
 		{
 			extensions = enumList.nextElement();
 			ASN1ObjectIdentifier[] oidExt = extensions.getExtensionOIDs();
-			ext = extensions.getExtension(oidExt[0]);
-			listExtensions.addLast(ext);
+			for (ASN1ObjectIdentifier itObjId : oidExt)
+			{
+				ext = extensions.getExtension(itObjId);
+				listExtensions.addLast(ext);
+			}
 		}
 		return listExtensions;
 		
+	}
+	
+	
+	private boolean changeCertificateIssuer(X509Certificate certificateSigned, String issuerAlias, String aliasToSign)
+	{
+		Key keySigned;
+		try {
+			keySigned = keyStore.getKey(aliasToSign, ARR_PASSWORD);
+			removeKeyPairCertificate(aliasToSign);
+			Certificate[] chainCertificateCA = getKeyStore().getCertificateChain(issuerAlias); 
+			Certificate[] chainCertficateSigned = new Certificate[1 + chainCertificateCA.length];
+			for (int idx = 0; idx < chainCertificateCA.length; idx ++)
+			{
+				chainCertficateSigned[idx + 1] = chainCertificateCA[idx];
+			}
+			chainCertficateSigned[0] = certificateSigned;
+			getKeyStore().setKeyEntry(aliasToSign, keySigned, ARR_PASSWORD, chainCertficateSigned);
+		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 	
 	public boolean signCertificate(String issuerAlias, String algorithmSign) {
@@ -876,19 +910,24 @@ public class MyKeyStore {
 					x500NameToSign, 
 					jcaRequest.getPublicKey());
 			
-			
-			
 			JcaContentSignerBuilder contentSignerBuilderCA =  new JcaContentSignerBuilder(algorithmSign);
 			ContentSigner contentSignerCA = contentSignerBuilderCA.build(privateKeyCA);
 			LinkedList<Extension> listExtension = getListExtensionsFromCSR();
 			
+			for (Extension it : listExtension)
+			{
+				certificateBuilder.addExtension(it);
+			}
+			X509CertificateHolder certificateHolder = certificateBuilder.build(contentSignerCA);
+			X509Certificate certificateSigned = new JcaX509CertificateConverter().getCertificate(certificateHolder);
 			
+			return changeCertificateIssuer(certificateSigned, issuerAlias, aliasToSign);
 			
-		} catch (OperatorCreationException | UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException | InvalidKeyException | CertificateEncodingException e) {
+		} catch (OperatorCreationException | UnrecoverableKeyException | KeyStoreException 
+				| NoSuchAlgorithmException | InvalidKeyException | CertIOException | CertificateException e) {
 			e.printStackTrace();
 			return false;
 		}
-		return false;
 	}
 	
 
