@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -32,12 +33,15 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.Vector;
 
 import javax.swing.text.AbstractDocument.Content;
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.DERSet;
+import org.bouncycastle.asn1.pkcs.Attribute;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -69,18 +73,20 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 
 import code.X509;
 import gui.Constants;
 
 public class MyKeyStore {
-	KeyStore  keyStore = null;
-	PKCS10CertificationRequest certificateSignRequest = null;
-	static final char [] ARR_PASSWORD = "Baba1234!".toCharArray();
-	static final String KEY_STORE_NAME = "KeyStore.jks";
-	static final String KEY_STORE_DEFAULT_JAVA_NAME = "JKS";
-	static final String KEY_STORE_FORMAT_PKCS12 = "PKCS12";
+	private KeyStore  keyStore = null;
+	private PKCS10CertificationRequest certificateSignRequest = null;
+	private static final char [] ARR_PASSWORD = "Baba1234!".toCharArray();
+	private static final String KEY_STORE_NAME = "KeyStore.jks";
+	private static final String KEY_STORE_DEFAULT_JAVA_NAME = "JKS";
+	private static final String KEY_STORE_FORMAT_PKCS12 = "PKCS12";
+	private String aliasToSign = null;
 	
 	private static final HashMap<String, String> algSig = new HashMap<>();
 	
@@ -638,75 +644,8 @@ public class MyKeyStore {
 					publicKeyLength);
 			
 			// ISSUED BY
-			//certificate.getIs
-			
-			// BASIC CONSTRAINT
-			
-			boolean isCertificateAuthority = false;
-			int pathLength = certificate.getBasicConstraints();
-			String pathLengthStr = null;
-			if (pathLength != -1)
-			{
-				isCertificateAuthority = true;
-				pathLengthStr = Integer.toString(pathLength);
-			}
-			else
-			{
-				isCertificateAuthority = false;
-				pathLengthStr =  "";
-			}
-			Set<String> setCriticalOID = certificate.getCriticalExtensionOIDs();
-			if (setCriticalOID == null)
-			{
-				setCriticalOID = new LinkedHashSet<String>();
-			}
-			@SuppressWarnings("deprecation")
-			boolean isCriticalBasicConstraint = setCriticalOID.contains(X509Extensions.BasicConstraints.getId());
 			Certificatev3ExtensionBasicConstraint basicConstraint = getExtBasicConstraintFromCert(certificate);
-			
-			// KEY IDENTIFIER
-			boolean isCriticalKeyIdentifier = setCriticalOID.contains(X509Extensions.SubjectKeyIdentifier.getId());
-			boolean isKeyIdentifierEnabled = false;
-			String keySubjectIdentifier = null;
-			
-			// TODO: update getSubject...
-			keySubjectIdentifier = getSubjectKeyIdentifier(certificate);
-			if (!"".equals(keySubjectIdentifier))
-			{
-				isKeyIdentifierEnabled = true;
-			}
-			else 
-			{
-				isKeyIdentifierEnabled = false;
-			}
-			
 			Certificatev3ExtensionKeyIdentifiers keyIdentifiers = getExtKeyIdentifiersFromCert(certificate);
-			// ALTERNATIVE NAMES
-			
-			String issuerAlternativeNames[] = new String[0]; 
-			try {
-				Collection<?> collectionAltNames = certificate.getIssuerAlternativeNames();
-				if (collectionAltNames != null)
-				{
-					issuerAlternativeNames = new String[1];
-					issuerAlternativeNames[0] = "";
-					Iterator it = certificate.getIssuerAlternativeNames().iterator();
-					while (it.hasNext())
-					{
-						List list = (List)it.next();
-						if (list.get(0).equals(GeneralName.dNSName))
-						{
-							issuerAlternativeNames[0] +=  " " + (String)list.get(1);
-							
-						}
-					}
-				}
-			} catch (CertificateParsingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				return null;
-			}
-			boolean isCriticalAlternativeNames = setCriticalOID.contains(X509Extensions.IssuerAlternativeName.getId());
 			Certificatev3ExtensionIssuerAlternativeName alternativeNames =  getExtAltNamesFromCert(certificate);
 			
 			Certificatev3Extension certificatev3Extension = new Certificatev3Extension(basicConstraint, alternativeNames, keyIdentifiers);
@@ -832,6 +771,7 @@ public class MyKeyStore {
 					extensions);
 			ContentSigner contentSigner = new JcaContentSignerBuilder(getSignatureAlgorithm(certificate)).build(privateKey);
 			certificateSignRequest =  certificationRequestBuilder.build(contentSigner);
+			aliasToSign = keypairName;
 			
 		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException | CertificateEncodingException | OperatorCreationException e) {
 			e.printStackTrace();
@@ -889,8 +829,67 @@ public class MyKeyStore {
 		}
 	}
 
+	private LinkedList<Extension> getListExtensionsFromCSR()
+	{
+		LinkedList<Extension> listExtensions = new LinkedList<>();
+		Attribute[] attributes = null;
+		Attribute attribute = null;
+		DERSet set = null;
+		Enumeration<Extensions> enumList = null;
+		Extensions extensions = null;
+		Extension ext = null;
+		
+		attributes = certificateSignRequest.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
+		attribute = attributes[0];
+		set = (DERSet) attribute.getAttrValues();
+		enumList = set.getObjects();
+		
+		while (enumList.hasMoreElements())
+		{
+			extensions = enumList.nextElement();
+			ASN1ObjectIdentifier[] oidExt = extensions.getExtensionOIDs();
+			ext = extensions.getExtension(oidExt[0]);
+			listExtensions.addLast(ext);
+		}
+		return listExtensions;
+		
+	}
+	
 	public boolean signCertificate(String issuerAlias, String algorithmSign) {
-		//certificateSignRequest.
+		
+		try {
+			// PREPARE CA FOR SIGN
+			PrivateKey privateKeyCA = (PrivateKey)getKeyStore().getKey(issuerAlias, ARR_PASSWORD);
+			X509Certificate certificateCA = (X509Certificate)getKeyStore().getCertificate(issuerAlias);
+			X509Certificate certificateToSign = (X509Certificate)getKeyStore().getCertificate(aliasToSign);
+
+			// GENERATE CERT TO SIGN
+			X500Name x500NameToSign = certificateSignRequest.getSubject();
+			X500Name x500nameCA = new JcaX509CertificateHolder(certificateCA).getSubject();
+			JcaPKCS10CertificationRequest jcaRequest = new JcaPKCS10CertificationRequest(certificateSignRequest);
+			
+			X509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(
+					x500nameCA, 
+					certificateToSign.getSerialNumber(), 
+					certificateToSign.getNotBefore(), 
+					certificateToSign.getNotAfter(), 
+					x500NameToSign, 
+					jcaRequest.getPublicKey());
+			
+			
+			
+			JcaContentSignerBuilder contentSignerBuilderCA =  new JcaContentSignerBuilder(algorithmSign);
+			ContentSigner contentSignerCA = contentSignerBuilderCA.build(privateKeyCA);
+			LinkedList<Extension> listExtension = getListExtensionsFromCSR();
+			
+			
+			
+		} catch (OperatorCreationException | UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException | InvalidKeyException | CertificateEncodingException e) {
+			e.printStackTrace();
+			return false;
+		}
 		return false;
 	}
+	
+
 }
