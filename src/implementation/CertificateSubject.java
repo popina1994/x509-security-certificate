@@ -8,6 +8,7 @@ public class CertificateSubject {
 	private String organizationUnit;
 	private String commonName;
 	private String signatureAlgorithm;
+	
 	public CertificateSubject(String country, String state, String locality, String organization,
 			String organizationUnit, String commonName, String signatureAlgorithm) {
 		super();
@@ -19,6 +20,7 @@ public class CertificateSubject {
 		this.commonName = commonName;
 		this.signatureAlgorithm = signatureAlgorithm;
 	}
+	
 	public String getCountry() {
 		return country;
 	}
@@ -40,6 +42,4 @@ public class CertificateSubject {
 	public String getSignatureAlgorithm() {
 		return signatureAlgorithm;
 	}
-	
-	
 }

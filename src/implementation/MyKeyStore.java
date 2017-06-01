@@ -3,7 +3,6 @@ package implementation;
 import java.util.List;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -22,8 +21,6 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.security.cert.X509Extension;
-import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collection;
 import java.util.Date;
@@ -33,15 +30,11 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Set;
-import java.util.Vector;
-
-import javax.swing.text.AbstractDocument.Content;
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DERSet;
-import org.bouncycastle.asn1.cms.IssuerAndSerialNumber;
 import org.bouncycastle.asn1.pkcs.Attribute;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.RDN;
@@ -49,36 +42,27 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
-import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.X509Extensions;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.X509ExtensionUtils;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.cert.jcajce.JcaX509v1CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.DefaultAlgorithmNameFinder;
-import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-
-import code.X509;
-import gui.Constants;
 
 public class MyKeyStore {
 	private KeyStore  keyStore = null;
@@ -133,25 +117,9 @@ public class MyKeyStore {
 				keyStore.load(fileInputStream, ARR_PASSWORD);
 			}
 		} 
-		catch (FileNotFoundException e)
+		catch (KeyStoreException | NoSuchAlgorithmException 
+				| CertificateException | IOException e)
 		{
-			return false;
-		}
-		catch (CertificateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		} catch (KeyStoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 			return false;
 		}
 		finally 
@@ -161,7 +129,6 @@ public class MyKeyStore {
 				try {
 					fileInputStream.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -175,24 +142,8 @@ public class MyKeyStore {
 		try {
 			fileOutputStream = new FileOutputStream(KEY_STORE_NAME);
 			keyStore.store(fileOutputStream, ARR_PASSWORD);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		} catch (KeyStoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		} catch (CertificateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (KeyStoreException | NoSuchAlgorithmException 
+				| CertificateException | IOException e) {
 			e.printStackTrace();
 			return false;
 		}
@@ -202,7 +153,6 @@ public class MyKeyStore {
 				try {
 					fileOutputStream.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 					return false;
 				}
@@ -213,8 +163,6 @@ public class MyKeyStore {
 	
 	private void deleteKeyStore()
 	{
-		FileOutputStream fileOutputStream = null;
-		
 		if (checkIfExist(KEY_STORE_NAME))
 		{
 			File file = new File(KEY_STORE_NAME);
@@ -234,7 +182,6 @@ public class MyKeyStore {
 			KeyPair keyPair = keyPairGenerator.generateKeyPair();
 			return keyPair;
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
@@ -588,17 +535,31 @@ public class MyKeyStore {
 		return algName;
 	}
 	
-	private CertificateIssuer getIssuerFromCert(X509Certificate certificate) {
+	private CertificateIssuer getIssuerFromCert(Certificate[] certificateChain) {
 		X500Name issuerX500Name = null;
+		X509Certificate issuerCertificate = null;
+		String issuerAlgorithm = null;
+		if (certificateChain.length == 1)
+		{
+			issuerCertificate = (X509Certificate)certificateChain[0];
+		}
+		else
+		{
+			issuerCertificate = (X509Certificate)certificateChain[1];
+		}
+		
 		try {
-			issuerX500Name = new JcaX509CertificateHolder(certificate).getIssuer();
+			
+			issuerX500Name = new JcaX509CertificateHolder(issuerCertificate).getSubject();
+			issuerAlgorithm = issuerCertificate.getSigAlgName();
+			
 		} catch (CertificateEncodingException e) {
 			e.printStackTrace();
 			return null;
 		}
 		CertificateIssuer issuer = new CertificateIssuer(
 				issuerX500Name.toString(), 
-				"");
+				issuerAlgorithm);
 		return issuer;
 			
 	}
@@ -644,7 +605,6 @@ public class MyKeyStore {
 		String serialNumber = null;
 		Date notBefore = null;
 		Date notAfter = null;
-		RDN rdn =  null;
 		if (getKeyStore() == null)
 		{
 			return null;
@@ -653,6 +613,7 @@ public class MyKeyStore {
 		try {
 			X509Certificate certificate = null;
 			certificate =  (X509Certificate)getKeyStore().getCertificate(alias);
+			Certificate[] certificateChain = getKeyStore().getCertificateChain(alias);
 			X500Name x500name = new JcaX509CertificateHolder(certificate).getSubject();
 			
 			// SUBJECT DATA
@@ -685,7 +646,7 @@ public class MyKeyStore {
 			
 			// ISSUED BY
 			
-			CertificateIssuer issuer = getIssuerFromCert(certificate);
+			CertificateIssuer issuer = getIssuerFromCert(certificateChain);
 			
 			Certificatev3ExtensionBasicConstraint basicConstraint = getExtBasicConstraintFromCert(certificate);
 			Certificatev3ExtensionKeyIdentifiers keyIdentifiers = getExtKeyIdentifiersFromCert(certificate);
@@ -766,7 +727,6 @@ public class MyKeyStore {
 			e.printStackTrace();
 			return false;
 		}
-		
 		
 		return true;
 	}

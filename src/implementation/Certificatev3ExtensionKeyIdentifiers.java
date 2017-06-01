@@ -23,6 +23,4 @@ public class Certificatev3ExtensionKeyIdentifiers extends Certificatev3Extension
 	public String getSubjectKeyIdentifier() {
 		return subjectKeyIdentifier;
 	}
-
-
 }

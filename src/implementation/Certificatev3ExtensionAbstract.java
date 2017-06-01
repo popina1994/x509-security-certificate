@@ -11,8 +11,4 @@ public abstract class Certificatev3ExtensionAbstract {
 	public boolean isCritical() {
 		return isCritical;
 	}
-	
-	
-	
-	
 }

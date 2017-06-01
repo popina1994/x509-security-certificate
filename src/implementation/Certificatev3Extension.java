@@ -21,6 +21,4 @@ public class Certificatev3Extension {
 	public Certificatev3ExtensionKeyIdentifiers getExtKeyIdentifiers() {
 		return extKeyIdentifiers;
 	}
-	
-	
 }

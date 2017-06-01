@@ -12,5 +12,4 @@ public class Certificatev3ExtensionIssuerAlternativeName extends Certificatev3Ex
 	public String[] getIssuerAlternativeNames() {
 		return issuerAlternativeNames;
 	}
-	
 }

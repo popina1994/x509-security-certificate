@@ -14,6 +14,4 @@ public class CertificatePublicKey {
 	public int getPublicKeyLength() {
 		return publicKeyLength;
 	}
-	
-	
 }

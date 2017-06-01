@@ -14,6 +14,4 @@ public class CertificateIssuer {
 		this.issuer = issuer;
 		this.issuerSignatureAlgorithm = issuerSignatureAlgorithm;
 	}
-
-	
 }

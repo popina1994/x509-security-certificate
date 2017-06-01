@@ -3,25 +3,17 @@ package implementation;
 import java.io.File;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.LinkedHashMap;
 import java.util.List;
 
-import javax.swing.SpringLayout.Constraints;
-
-import org.bouncycastle.operator.ContentSigner;
 
 import code.GuiException;
 import gui.Constants;
 import x509.v3.CodeV3;
-import x509.v3.GuiV3;
 
 public class MyCode extends CodeV3 {
 	private static MyKeyStore myKeyStore = new MyKeyStore();
-	private static final int IDX_ISSUER_ALTERNATIVE_NAME = 6;
-	
 	public MyCode(boolean[] algorithm_conf, boolean[] extensions_conf) throws GuiException {
 		super(algorithm_conf, extensions_conf);
-		// TODO Auto-generated constructor stub
 	}
 
 	@Override
@@ -32,7 +24,6 @@ public class MyCode extends CodeV3 {
 
 	@Override
 	public boolean exportKeypair(String alias, String file, String password) {
-		
 		return myKeyStore.exportKeypair(alias, file, password);
 	}
 
@@ -43,13 +34,11 @@ public class MyCode extends CodeV3 {
 
 	@Override
 	public String getIssuer(String issuerAlias) {
-		// TODO Auto-generated method stub
 		return myKeyStore.getIssuer(issuerAlias);
 	}
 
 	@Override
 	public String getIssuerPublicKeyAlgorithm(String issuerAlias) {
-		// TODO Auto-generated method stub
 		return myKeyStore.getIssuerPublicKeyAlgorithm(issuerAlias);
 	}
 
@@ -70,13 +59,11 @@ public class MyCode extends CodeV3 {
 
 	@Override
 	public boolean importCertificate(File arg0, String arg1) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public boolean importKeypair(String alias, String file, String password) {
-		// TODO Auto-generated method stub
 		return myKeyStore.importKeyPair(alias, file, password);
 	}
 
@@ -124,6 +111,7 @@ public class MyCode extends CodeV3 {
 		access.setSubjectKeyID(certificate.getCertificateV3Extension().getExtKeyIdentifiers().getSubjectKeyIdentifier());;
 		
 		access.setIssuer(certificate.getCertificateIssuer().getIssuer());
+		access.setIssuerSignatureAlgorithm(certificate.getCertificateIssuer().getIssuerSignatureAlgorithm());
 		
 		
 		return certificate.getType();

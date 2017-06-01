@@ -12,7 +12,6 @@ public class Certificatev3ExtensionBasicConstraint extends Certificatev3Extensio
 		this.isCertificateAuthority = isCertificateAuthority;
 	}
 
-
 	public String getPathLength() {
 		return pathLength;
 	}
@@ -20,6 +19,4 @@ public class Certificatev3ExtensionBasicConstraint extends Certificatev3Extensio
 	public boolean isCertificateAuthority() {
 		return isCertificateAuthority;
 	}
-	
-	
 }
