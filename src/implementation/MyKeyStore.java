@@ -602,6 +602,29 @@ public class MyKeyStore {
 		return issuer;
 			
 	}
+	
+	private int getCertificateType(String alias) throws UnrecoverableKeyException, KeyStoreException, NoSuchAlgorithmException
+	{
+		int type;
+		if (getKeyStore().getKey(alias, ARR_PASSWORD) == null)
+		{
+			type = Certificatev3.TYPE_TRUSTED;
+		}
+		else
+		{
+			if (getKeyStore().getCertificateChain(alias).length == 1)
+			{
+
+				type = Certificatev3.TYPE_KEY_PAIR;
+			}
+			else 
+			{
+				type = Certificatev3.TYPE_SIGNED;
+			}
+		}
+
+		return type;
+	}
 
 	
 	public Certificatev3 loadKeyPair(String alias)
@@ -669,13 +692,13 @@ public class MyKeyStore {
 			Certificatev3ExtensionIssuerAlternativeName alternativeNames =  getExtAltNamesFromCert(certificate);
 			
 			Certificatev3Extension certificatev3Extension = new Certificatev3Extension(basicConstraint, alternativeNames, keyIdentifiers);
+			int type = getCertificateType(alias);
+			
+			
 			certificateV3 = new Certificatev3(version, certificateSubject, 
-					serialNumber, issuer, certificateValidity, certificatePublicKey, certificatev3Extension);
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-			return null;
-		} catch (CertificateEncodingException e) {
-			// TODO Auto-generated catch block
+					serialNumber, issuer, certificateValidity, certificatePublicKey, 
+					certificatev3Extension,type);
+		} catch (KeyStoreException | CertificateEncodingException | UnrecoverableKeyException | NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -882,6 +905,7 @@ public class MyKeyStore {
 			}
 			chainCertficateSigned[0] = certificateSigned;
 			getKeyStore().setKeyEntry(aliasToSign, keySigned, ARR_PASSWORD, chainCertficateSigned);
+			saveKeyStore();
 		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			return false;

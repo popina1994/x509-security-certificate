@@ -81,9 +81,6 @@ public class MyCode extends CodeV3 {
 	}
 
 	private static final int ERROR_CODE_LOAD_KEY_PAIR = -1;
-	private static final int NOT_SIGNED_CODE_LOAD_KEY_PAIR = 0;
-	private static final int SIGNED_CODE_LOAD_KEY_PAIR = 1;
-	private static final int TRUSTED_CODE_LOAD_KEY_PAIR = 2;
 	
 	@Override
 	public int loadKeypair(String alias) {
@@ -122,18 +119,14 @@ public class MyCode extends CodeV3 {
 			access.setAlternativeName(Constants.IAN, alternativeNames[0]);
 		}
 		
-		
 		access.setCritical(Constants.AKID, certificate.getCertificateV3Extension().getExtKeyIdentifiers().isCritical());
 		access.setEnabledKeyIdentifiers(certificate.getCertificateV3Extension().getExtKeyIdentifiers().isKeyIdentifierEnabled());
 		access.setSubjectKeyID(certificate.getCertificateV3Extension().getExtKeyIdentifiers().getSubjectKeyIdentifier());;
 		
 		access.setIssuer(certificate.getCertificateIssuer().getIssuer());
 		
-		//access.setissu
-		//access.issu
 		
-		
-		return NOT_SIGNED_CODE_LOAD_KEY_PAIR;
+		return certificate.getType();
 	}
 
 	@Override
