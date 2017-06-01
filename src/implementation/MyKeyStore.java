@@ -698,7 +698,8 @@ public class MyKeyStore {
 			certificateV3 = new Certificatev3(version, certificateSubject, 
 					serialNumber, issuer, certificateValidity, certificatePublicKey, 
 					certificatev3Extension,type);
-		} catch (KeyStoreException | CertificateEncodingException | UnrecoverableKeyException | NoSuchAlgorithmException e) {
+		} catch (KeyStoreException | CertificateEncodingException | 
+				UnrecoverableKeyException | NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -713,32 +714,15 @@ public class MyKeyStore {
 		
 		try {
 			
-			X509Certificate certificate = (X509Certificate)getKeyStore().getCertificate(alias);
+			Certificate[] chainCertificate = getKeyStore().getCertificateChain(alias);
 			Key key = getKeyStore().getKey(alias, ARR_PASSWORD);
 			fileOutputStream = new FileOutputStream(file);
 			KeyStore keyStore = KeyStore.getInstance(KEY_STORE_FORMAT_PKCS12);
-			keyStore.load(null, null);
-			Certificate [] chainCertficate = new Certificate[1];
-			chainCertficate[0] = certificate;
-			
-			keyStore.setKeyEntry(alias, key, password.toCharArray(), chainCertficate);
+			keyStore.load(null, null);			
+			keyStore.setKeyEntry(alias, key, password.toCharArray(), chainCertificate);
 			keyStore.store(fileOutputStream, password.toCharArray());
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			return false;
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-			return false;
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-			return false;
-		} catch (CertificateException e) {
-			e.printStackTrace();
-			return false;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		} catch (UnrecoverableKeyException e) {
+		} catch (KeyStoreException | UnrecoverableKeyException | 
+				NoSuchAlgorithmException | CertificateException | IOException e) {
 			e.printStackTrace();
 			return false;
 		}
@@ -769,10 +753,9 @@ public class MyKeyStore {
 			keyStore = KeyStore.getInstance(KEY_STORE_FORMAT_PKCS12);
 			fileInputStream = new FileInputStream(file);
 			keyStore.load(fileInputStream, password.toCharArray());
-			Certificate certificate = keyStore.getCertificate(alias);
-			Certificate [] chainCertficate = new Certificate[1];
+			
+			Certificate [] chainCertficate = keyStore.getCertificateChain(alias);
 			Key key = keyStore.getKey(alias, password.toCharArray());
-			chainCertficate[0] = certificate;
 			getKeyStore().setKeyEntry(alias, key, ARR_PASSWORD, chainCertficate);
 			saveKeyStore();
 			
