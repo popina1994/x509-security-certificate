@@ -17,9 +17,8 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean exportCertificate(File arg0, int arg1) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean exportCertificate(File file, int encoding) {
+		return myKeyStore.exportCertificate(file, encoding);
 	}
 
 	@Override
@@ -58,8 +57,8 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean importCertificate(File arg0, String arg1) {
-		return false;
+	public boolean importCertificate(File file, String keyPairName) {
+		return myKeyStore.importCertificate(file, keyPairName);
 	}
 
 	@Override

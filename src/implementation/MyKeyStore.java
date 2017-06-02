@@ -1,10 +1,15 @@
 package implementation;
 
 import java.util.List;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -19,6 +24,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
@@ -56,6 +62,7 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -63,6 +70,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.bouncycastle.util.encoders.Base64;
 
 public class MyKeyStore {
 	private KeyStore  keyStore = null;
@@ -71,7 +79,9 @@ public class MyKeyStore {
 	private static final String KEY_STORE_NAME = "KeyStore.jks";
 	private static final String KEY_STORE_DEFAULT_JAVA_NAME = "JKS";
 	private static final String KEY_STORE_FORMAT_PKCS12 = "PKCS12";
+	private static final String CERTIFICATE_TYPE = "X.509";
 	private String aliasToSign = null;
+	private String selectedAlias = null;
 	
 	private static final HashMap<String, String> algSig = new HashMap<>();
 	
@@ -535,28 +545,43 @@ public class MyKeyStore {
 		return algName;
 	}
 	
-	private CertificateIssuer getIssuerFromCert(Certificate[] certificateChain) {
+	private CertificateIssuer getIssuerFromCert(Certificate[] certificateChain, Certificate certificate) {
 		X500Name issuerX500Name = null;
 		X509Certificate issuerCertificate = null;
 		String issuerAlgorithm = null;
-		if (certificateChain.length == 1)
+		if (certificateChain == null)
 		{
-			issuerCertificate = (X509Certificate)certificateChain[0];
+			try {
+				issuerX500Name = new JcaX509CertificateHolder((X509Certificate) certificate).getIssuer();
+				issuerAlgorithm = "NOT KNOWN";
+			} catch (CertificateEncodingException e) {
+				e.printStackTrace();
+				return null;
+			}
 		}
 		else
 		{
-			issuerCertificate = (X509Certificate)certificateChain[1];
+			if (certificateChain.length == 1)
+			{
+				issuerCertificate = (X509Certificate)certificateChain[0];
+			}
+			else
+			{
+				issuerCertificate = (X509Certificate)certificateChain[1];
+			}
+			
+			try {
+				issuerX500Name = new JcaX509CertificateHolder(issuerCertificate).getSubject();
+				issuerAlgorithm = issuerCertificate.getSigAlgName();
+				
+			} catch (CertificateEncodingException e) {
+				e.printStackTrace();
+				return null;
+			}
 		}
 		
-		try {
-			
-			issuerX500Name = new JcaX509CertificateHolder(issuerCertificate).getSubject();
-			issuerAlgorithm = issuerCertificate.getSigAlgName();
-			
-		} catch (CertificateEncodingException e) {
-			e.printStackTrace();
-			return null;
-		}
+		
+		
 		CertificateIssuer issuer = new CertificateIssuer(
 				issuerX500Name.toString(), 
 				issuerAlgorithm);
@@ -646,7 +671,7 @@ public class MyKeyStore {
 			
 			// ISSUED BY
 			
-			CertificateIssuer issuer = getIssuerFromCert(certificateChain);
+			CertificateIssuer issuer = getIssuerFromCert(certificateChain, certificate);
 			
 			Certificatev3ExtensionBasicConstraint basicConstraint = getExtBasicConstraintFromCert(certificate);
 			Certificatev3ExtensionKeyIdentifiers keyIdentifiers = getExtKeyIdentifiersFromCert(certificate);
@@ -664,7 +689,7 @@ public class MyKeyStore {
 			e.printStackTrace();
 			return null;
 		}
-		
+		selectedAlias = alias;
 		return certificateV3;
 	}
 
@@ -897,5 +922,129 @@ public class MyKeyStore {
 		}
 	}
 	
+	private static final int ENCODING_DER = 0;
+	private static final int ENCODING_PEM = 1;
+
+	private static boolean outputCertificateToDER(File file, X509Certificate certificate)
+	{
+		FileOutputStream fileOutputStream = null;
+		byte[] outputBytes = null;
+		try 
+		{
+			outputBytes = certificate.getEncoded();
+			fileOutputStream = new FileOutputStream(file);
+			fileOutputStream.write(outputBytes);
+		} catch (CertificateEncodingException | IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		finally {
+			if (fileOutputStream != null)
+			{
+				try {
+					fileOutputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	private static boolean outputCertificateToPEM(File file, X509Certificate certificate) {
+		FileWriter fileWriter = null;
+		JcaPEMWriter pemWriter = null;
+		try 
+		{
+			fileWriter = new FileWriter(file);
+			pemWriter = new JcaPEMWriter(fileWriter);
+			pemWriter.writeObject(certificate);
+			pemWriter.flush();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		finally {
+			if (fileWriter != null)
+			{
+				try {
+					fileWriter.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
+			if (fileWriter != null)
+			{
+				try {
+					pemWriter.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	public boolean exportCertificate(File file, int encoding) {
+		X509Certificate certificate = null;
+
+		switch (encoding)
+		{
+			case ENCODING_DER:
+				try {
+					certificate = (X509Certificate) getKeyStore().getCertificate(selectedAlias);
+				} catch (KeyStoreException e) {
+					e.printStackTrace();
+					return false;
+				}
+				return outputCertificateToDER(file, certificate);
+			case ENCODING_PEM:
+				try {
+					certificate = (X509Certificate) getKeyStore().getCertificate(selectedAlias);
+				} catch (KeyStoreException e) {
+					e.printStackTrace();
+					return false;
+				}
+				return outputCertificateToPEM(file, certificate);
+			default:
+				return false;
+		}
+	}
+
+	public boolean importCertificate(File file, String keyPairName) {
+		FileInputStream fileInputStream = null;
+		BufferedInputStream bufferedInputStream = null;
+		
+	    try {
+	    	fileInputStream = new FileInputStream(file);
+			bufferedInputStream = new BufferedInputStream(fileInputStream);
+			CertificateFactory cf = CertificateFactory.getInstance(CERTIFICATE_TYPE);
+			
+			Certificate certificate = cf.generateCertificate(bufferedInputStream);
+			getKeyStore().setCertificateEntry(keyPairName, certificate);
+			saveKeyStore();
+		} catch (CertificateException | FileNotFoundException | KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+	    finally {
+			if (fileInputStream != null)
+			{
+				try {
+					fileInputStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+
 
 }
